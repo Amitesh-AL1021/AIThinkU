@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Lord Krishna</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bot-bubble: #2ed71f; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: hsl(0, 0%, 99%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        body::before {
+            content: "";
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(255,109,163,0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(199,125,255,0.15) 0%, transparent 20%),
+                radial-gradient(circle at 30% 60%, rgba(255,107,107,0.1) 0%, transparent 25%),
+                radial-gradient(circle at 70% 30%, rgba(77,121,255,0.1) 0%, transparent 25%);
+            z-index: -1;
+        }
+        .floating-hearts { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .heart { position: absolute; color: rgba(171,45,83,0.3); font-size: 20px; animation: float 15s infinite linear; }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.4; } 90% { opacity: 0.4; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        /* ═══════════════════════════════
+           KRISHNA CHAT — ORIGINAL UI
+        ═══════════════════════════════ */
+        .chat-container {
+            display: flex; flex-direction: column;
+            max-width: 900px; height: 100vh;
+            margin: 0 auto; background: #EFEAE2;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.8s ease;
+        }
+        .chat-header {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: rgb(66,63,63); padding: 15px 25px;
+            display: flex; align-items: center;
+            box-shadow: 0 4px 15px rgba(210,19,19,0.2);
+            z-index: 10; position: relative;
+        }
+        .profile-pic {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(45deg,#F0F0F0);
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 15px; border: 6px solid rgb(30,196,33); overflow: hidden;
+        }
+        .profile-pic i { font-size: 24px; color: rgb(231,15,15); }
+        .header-content { flex: 1; }
+        .chat-header h1 {
+            font-family: 'Dancing Script', cursive; font-size: 28px;
+            font-weight: 700; margin: 0; display: flex; align-items: center;
+        }
+        .status { display: flex; align-items: center; font-size: 13px; margin-top: 3px; }
+        .status-dot { width: 8px; height: 8px; background-color: #14bf53; border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth;
+        }
+        .message {
+            max-width: 80%; padding: 15px 20px; border-radius: 25px;
+            position: relative; line-height: 1.5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            animation: messageAppear 0.3s ease-out; word-wrap: break-word; font-size: 16px;
+        }
+        @keyframes messageAppear { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message.user { background: linear-gradient(135deg, var(--user-bubble), #10cd20); color: rgb(12,11,11); align-self: flex-end; border-bottom-right-radius: 8px; }
+        .message.bot { background: linear-gradient(135deg, var(--bot-bubble), #65a561); color: rgb(255,255,255); align-self: flex-start; border-bottom-left-radius: 8px; }
+        .message-time { display: block; font-size: 11px; opacity: 0.8; margin-top: 5px; text-align: right; }
+        .message.typing { display: flex; align-items: center; padding: 15px 20px; }
+        .typing-indicator { display: flex; align-items: center; gap: 6px; }
+        .typing-dot { width: 10px; height: 10px; background-color: white; border-radius: 50%; opacity: 0.6; }
+        .typing-dot:nth-child(1) { animation: typing 1.2s infinite; }
+        .typing-dot:nth-child(2) { animation: typing 1.2s infinite 0.4s; }
+        .typing-dot:nth-child(3) { animation: typing 1.2s infinite 0.8s; }
+        @keyframes typing { 0%,60%,100% { transform: translateY(0); opacity: 0.6; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+        .chat-input-area {
+            display: flex; padding: 15px;
+            background: rgba(40,40,70,0.8);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        #userInput {
+            flex: 1; padding: 16px 20px; border: none; border-radius: 30px;
+            background: rgba(255,255,255,0.1); color: white; font-size: 16px; outline: none; transition: all 0.3s;
+        }
+        #userInput:focus { background: rgba(255,255,255,0.15); box-shadow: 0 0 0 2px var(--primary-light); }
+        #userInput::placeholder { color: rgba(255,255,255,0.5); }
+        #sendButton {
+            width: 55px; height: 55px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #EFEAE2; border: 3px solid rgb(27,229,54); border-radius: 50%;
+            cursor: pointer; margin-left: 15px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s; box-shadow: 0 4px 15px rgba(199,125,255,0.3);
+        }
+        #sendButton:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 6px 20px rgba(199,125,255,0.5); }
+        #sendButton:disabled { opacity: 0.5; transform: none; box-shadow: none; cursor: not-allowed; }
+
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: linear-gradient(var(--primary), var(--secondary)); border-radius: 10px; }
+
+        .bot-message-decoration { position: absolute; font-size: 24px; color: rgba(255,255,255,0.2); }
+        .bot-message-decoration.left { top: -10px; left: -10px; }
+        .bot-message-decoration.right { bottom: -10px; right: -10px; }
+
+        .welcome-banner {
+            text-align: center; padding: 15px;
+            background: linear-gradient(90deg, rgba(255,77,148,0.3), rgba(199,125,255,0.3));
+            font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .mood-badge { font-size: 10px; opacity: 0.7; margin-top: 3px; display: block; font-style: italic; }
+        #clearMemoryBtn {
+            background: none; border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px; padding: 4px 10px;
+            color: rgba(255,255,255,0.7); font-size: 11px; cursor: pointer;
+            font-family: 'Poppins', sans-serif; transition: all 0.2s;
+        }
+        #clearMemoryBtn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .session-divider { text-align: center; font-size: 11px; color: rgba(0,0,0,0.35); padding: 4px 0; font-style: italic; }
+
+        /* MyChat button in header */
+        #myChatBtn {
+            background: linear-gradient(135deg, #ff6b9d, #c77dff);
+            border: none; border-radius: 20px; padding: 5px 12px;
+            color: white; font-size: 11px; font-weight: 600; cursor: pointer;
+            font-family: 'Poppins', sans-serif; transition: all 0.2s; margin-left: 8px;
+            display: flex; align-items: center; gap: 5px;
+            box-shadow: 0 2px 10px rgba(255,107,157,0.4); white-space: nowrap;
+        }
+        #myChatBtn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,107,157,0.6); }
+
+        /* ═══════════════════════════════════════════════
+           MYCHAT OVERLAY — full screen, same as ThinkU
+        ═══════════════════════════════════════════════ */
+        #myChatOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.35s;
+        }
+        #myChatOverlay.open { opacity: 1; pointer-events: all; }
+
+        /* The modal itself looks exactly like .chat-container */
+        .mc-modal {
+            display: flex; flex-direction: column;
+            width: 94%; max-width: 900px;
+            height: 92vh;
+            background: #EFEAE2;             /* same as ThinkU */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.15);
+            transform: translateY(24px) scale(0.97);
+            transition: transform 0.35s;
+        }
+        #myChatOverlay.open .mc-modal { transform: translateY(0) scale(1); }
+
+        /* ── MC: Screens ── */
+        .mc-screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+        .mc-screen.active { display: flex; }
+
+        /* ── MC: Close button ── */
+        .mc-close {
+            position: absolute; top: 14px; right: 18px;
+            background: rgba(0,0,0,0.12); border: none; border-radius: 50%;
+            width: 30px; height: 30px; color: rgba(0,0,0,0.5);
+            font-size: 14px; cursor: pointer; z-index: 20;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .mc-close:hover { background: rgba(0,0,0,0.2); color: #333; }
+
+        /* ════════════════
+           LANDING SCREEN
+        ════════════════ */
+        #mc-landing {
+            align-items: center; justify-content: center;
+            text-align: center; padding: 40px 30px;
+            background: #EFEAE2;
+        }
+        .mc-hero-icon { font-size: 60px; margin-bottom: 16px; animation: mcHeart 2s infinite; }
+        @keyframes mcHeart { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+        .mc-land-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 30px; font-weight: 700; color: #333; margin-bottom: 10px;
+        }
+        .mc-land-title span { color: #ff6b9d; }
+        .mc-land-sub { color: rgba(0,0,0,0.5); font-size: 14px; line-height: 1.65; max-width: 360px; margin: 0 auto 28px; }
+        .mc-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 30px; }
+        .mc-chip {
+            background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 20px; padding: 7px 16px; color: rgba(0,0,0,0.6); font-size: 12px;
+        }
+        .mc-start-btn {
+            background: linear-gradient(135deg, #ff6b9d, #c77dff);
+            border: none; border-radius: 50px; padding: 15px 36px;
+            color: white; font-size: 15px; font-family: 'Poppins', sans-serif;
+            font-weight: 600; cursor: pointer;
+            box-shadow: 0 6px 24px rgba(255,107,157,0.35);
+            transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .mc-start-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(255,107,157,0.5); }
+
+        /* ════════════════
+           SETUP SCREEN
+        ════════════════ */
+        #mc-setup { background: #EFEAE2; overflow-y: auto; }
+
+        /* Setup screen has a ThinkU-style header bar */
+        .mc-setup-header {
+            background: linear-gradient(90deg, #ff6b9d, #c77dff);
+            padding: 15px 25px; display: flex; align-items: center;
+            box-shadow: 0 4px 15px rgba(255,107,157,0.25); flex-shrink: 0;
+        }
+        .mc-setup-header-icon {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 14px; border: 3px solid rgba(255,255,255,0.5);
+            font-size: 22px;
+        }
+        .mc-setup-header-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 24px; font-weight: 700; color: white;
+        }
+        .mc-setup-header-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+        .mc-back-btn {
+            margin-left: auto; background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.35); border-radius: 20px;
+            padding: 5px 12px; color: white; font-size: 11px; cursor: pointer;
+            font-family: 'Poppins', sans-serif; transition: all 0.2s;
+        }
+        .mc-back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .mc-setup-body { padding: 24px; }
+        .mc-field { margin-bottom: 18px; }
+        .mc-label { color: rgba(0,0,0,0.55); font-size: 12px; font-weight: 600; margin-bottom: 7px; display: block; letter-spacing: 0.3px; }
+        .mc-input {
+            width: 100%; padding: 13px 16px;
+            background: white; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px; color: #333; font-size: 14px;
+            font-family: 'Poppins', sans-serif; outline: none; transition: all 0.3s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .mc-input::placeholder { color: rgba(0,0,0,0.28); }
+        .mc-input:focus { border-color: #ff6b9d; box-shadow: 0 0 0 3px rgba(255,107,157,0.12); }
+        .mc-textarea {
+            width: 100%; padding: 13px 16px;
+            background: white; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px; color: #333; font-size: 13px;
+            font-family: 'Poppins', sans-serif; outline: none;
+            resize: vertical; min-height: 120px; transition: all 0.3s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .mc-textarea::placeholder { color: rgba(0,0,0,0.28); }
+        .mc-textarea:focus { border-color: #ff6b9d; box-shadow: 0 0 0 3px rgba(255,107,157,0.12); }
+
+        .mc-divider {
+            display: flex; align-items: center; gap: 10px;
+            color: rgba(0,0,0,0.3); font-size: 11px; margin: 16px 0;
+        }
+        .mc-divider::before,.mc-divider::after { content:''; flex:1; height:1px; background:rgba(0,0,0,0.1); }
+
+        .mc-upload-zone {
+            border: 2px dashed rgba(255,107,157,0.4); border-radius: 12px;
+            padding: 22px 16px; text-align: center; cursor: pointer;
+            background: rgba(255,107,157,0.04); position: relative; transition: all 0.3s;
+        }
+        .mc-upload-zone:hover { border-color: #ff6b9d; background: rgba(255,107,157,0.08); }
+        .mc-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .mc-upload-text { color: rgba(0,0,0,0.45); font-size: 12px; line-height: 1.6; }
+        .mc-upload-text strong { color: #ff6b9d; }
+
+        .mc-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .mc-preview-chip {
+            background: rgba(255,107,157,0.1); border: 1px solid rgba(255,107,157,0.25);
+            border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #e05586;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .mc-preview-chip button { background:none; border:none; color:#e05586; cursor:pointer; font-size:13px; padding:0; }
+
+        .mc-go-btn {
+            width: 100%; padding: 15px;
+            background: linear-gradient(135deg, #ff6b9d, #c77dff);
+            border: none; border-radius: 30px; color: white;
+            font-size: 15px; font-family: 'Poppins', sans-serif;
+            font-weight: 600; cursor: pointer; margin-top: 8px;
+            transition: all 0.3s; box-shadow: 0 4px 18px rgba(255,107,157,0.3);
+        }
+        .mc-go-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(255,107,157,0.45); }
+        .mc-go-btn:disabled { opacity: 0.45; transform: none; cursor: not-allowed; }
+
+        /* ════════════════
+           ANALYZING SCREEN
+        ════════════════ */
+        #mc-analyzing {
+            align-items: center; justify-content: center; text-align: center;
+            background: #EFEAE2; gap: 14px; padding: 40px 30px;
+        }
+        .mc-ring-wrap { position:relative; width:90px; height:90px; }
+        .mc-ring {
+            position:absolute; inset:0; border-radius:50%;
+            border:3px solid transparent; border-top-color:#ff6b9d;
+            animation: mcSpin 1.2s linear infinite;
+        }
+        .mc-ring:nth-child(2) { inset:12px; border-top-color:#c77dff; animation-duration:0.85s; animation-direction:reverse; }
+        .mc-ring-heart { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:28px; animation:mcHeart 1.5s infinite; }
+        @keyframes mcSpin { to { transform:rotate(360deg); } }
+        .mc-analyzing-title { font-family:'Dancing Script',cursive; font-size:24px; font-weight:700; color:#333; }
+        .mc-analyzing-sub { color:rgba(0,0,0,0.45); font-size:13px; }
+        .mc-steps { display:flex; flex-direction:column; gap:10px; align-items:flex-start; }
+        .mc-step { display:flex; align-items:center; gap:10px; color:rgba(0,0,0,0.3); font-size:13px; transition:all 0.4s; }
+        .mc-step.active { color:#333; font-weight:500; }
+        .mc-step.done { color:#ff6b9d; }
+        .mc-step-dot { width:8px; height:8px; border-radius:50%; background:rgba(0,0,0,0.12); flex-shrink:0; transition:background 0.4s; }
+        .mc-step.active .mc-step-dot { background:#ff6b9d; animation:pulse 1s infinite; }
+        .mc-step.done .mc-step-dot { background:#ff6b9d; }
+
+        /* ════════════════
+           CHAT SCREEN — mirrors ThinkU exactly
+        ════════════════ */
+        #mc-chat { background: #EFEAE2; }
+
+        /* Header — same green gradient style as ThinkU */
+        .mc-chat-header {
+            background: linear-gradient(90deg, #25d366, #128c7e);
+            color: rgb(66,63,63); padding: 15px 25px;
+            display: flex; align-items: center;
+            box-shadow: 0 4px 15px rgba(18,140,126,0.25);
+            z-index: 10; position: relative; flex-shrink: 0;
+        }
+        .mc-avatar {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(45deg, #F0F0F0);
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 15px; border: 6px solid rgba(255,255,255,0.7);
+            overflow: hidden; font-size: 26px; flex-shrink: 0;
+        }
+        .mc-person-name {
+            font-family: 'Dancing Script', cursive;
+            font-size: 24px; font-weight: 700; color: white;
+        }
+        .mc-person-status { display:flex; align-items:center; font-size:13px; color:rgba(255,255,255,0.85); margin-top:2px; }
+        .mc-online-dot { width:8px; height:8px; background:#b2ffda; border-radius:50%; margin-right:6px; animation:pulse 1.5s infinite; }
+        .mc-chat-actions { margin-left:auto; display:flex; gap:8px; }
+        .mc-action-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 20px; padding: 4px 10px; color: rgba(255,255,255,0.8);
+            font-size: 11px; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s;
+        }
+        .mc-action-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+
+        /* Welcome banner — same as ThinkU */
+        .mc-welcome-banner {
+            text-align: center; padding: 10px 15px;
+            background: linear-gradient(90deg, rgba(255,77,148,0.25), rgba(199,125,255,0.25));
+            font-size: 13px; color: rgba(0,0,0,0.55);
+            border-bottom: 1px solid rgba(0,0,0,0.06); flex-shrink: 0;
+        }
+
+        /* Messages area — same bg as ThinkU */
+        .mc-messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 18px;
+            scroll-behavior: smooth; background: #EFEAE2;
+        }
+        .mc-messages::-webkit-scrollbar { width: 8px; }
+        .mc-messages::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius:10px; }
+        .mc-messages::-webkit-scrollbar-thumb { background: linear-gradient(#25d366, #128c7e); border-radius:10px; }
+
+        /* Messages — same bubble style as ThinkU */
+        .mc-msg {
+            max-width: 80%; padding: 15px 20px; border-radius: 25px;
+            position: relative; line-height: 1.5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            animation: mcMsgPop 0.3s ease-out; word-wrap: break-word; font-size: 15px;
+        }
+        @keyframes mcMsgPop { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        /* User bubble — same green as ThinkU user */
+        .mc-msg.user {
+            background: linear-gradient(135deg, #dcf8c6, #10cd20);
+            color: rgb(12,11,11); align-self: flex-end; border-bottom-right-radius: 8px;
+        }
+        /* Bot bubble — same green as ThinkU bot */
+        .mc-msg.bot {
+            background: linear-gradient(135deg, #2ed71f, #65a561);
+            color: white; align-self: flex-start; border-bottom-left-radius: 8px;
+        }
+        .mc-msg-time { display:block; font-size:11px; opacity:0.75; margin-top:5px; text-align:right; }
+
+        /* Bot decoration — same as ThinkU ❣️ 💖 */
+        .mc-msg-deco { position:absolute; font-size:22px; color:rgba(255,255,255,0.2); }
+        .mc-msg-deco.left { top:-10px; left:-10px; }
+        .mc-msg-deco.right { bottom:-10px; right:-10px; }
+
+        /* Typing indicator bubble — same as ThinkU */
+        .mc-typing-bubble {
+            max-width: 80px; padding: 15px 20px; border-radius: 25px; border-bottom-left-radius: 8px;
+            background: linear-gradient(135deg, #2ed71f, #65a561);
+            align-self: flex-start; display: flex; align-items: center; gap: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); animation: mcMsgPop 0.3s ease-out;
+        }
+        .mc-typing-dot { width:10px; height:10px; background:white; border-radius:50%; opacity:0.7; }
+        .mc-typing-dot:nth-child(1){animation:typing 1.2s infinite}
+        .mc-typing-dot:nth-child(2){animation:typing 1.2s infinite 0.4s}
+        .mc-typing-dot:nth-child(3){animation:typing 1.2s infinite 0.8s}
+
+        .mc-system-note { text-align:center; font-size:11px; color:rgba(0,0,0,0.3); font-style:italic; }
+
+        /* Photo bubble */
+        .mc-msg-photo { max-width:200px; border-radius:14px; overflow:hidden; cursor:pointer; }
+        .mc-msg-photo img { width:100%; height:auto; display:block; border-radius:14px; transition:transform 0.2s; }
+        .mc-msg-photo img:hover { transform:scale(1.03); }
+
+        /* Input area — same dark bar as ThinkU */
+        .mc-input-row {
+            display: flex; padding: 15px;
+            background: rgba(40,40,70,0.8);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0; gap: 0; align-items: center;
+        }
+        /* Photo button beside input */
+        .mc-photo-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); border: none;
+            color: rgba(255,255,255,0.6); font-size: 17px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 10px; transition: all 0.2s; position: relative; flex-shrink: 0;
+        }
+        .mc-photo-btn:hover { background: rgba(255,255,255,0.18); color: white; }
+        .mc-photo-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+        #mcChatInput {
+            flex: 1; padding: 16px 20px; border: none; border-radius: 30px;
+            background: rgba(255,255,255,0.1); color: white; font-size: 16px;
+            font-family: 'Poppins', sans-serif; outline: none; resize: none;
+            max-height: 120px; transition: all 0.3s; line-height: 1.4;
+        }
+        #mcChatInput::placeholder { color: rgba(255,255,255,0.5); }
+        #mcChatInput:focus { background: rgba(255,255,255,0.15); }
+
+        #mcSendBtn {
+            width: 55px; height: 55px;
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            color: #EFEAE2; border: 3px solid rgb(27,229,54); border-radius: 50%;
+            cursor: pointer; margin-left: 15px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s; box-shadow: 0 4px 15px rgba(37,211,102,0.35);
+        }
+        #mcSendBtn:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 6px 20px rgba(37,211,102,0.5); }
+        #mcSendBtn:disabled { opacity: 0.5; transform: none; box-shadow: none; cursor: not-allowed; }
+
+        /* Lightbox */
+        #mcLightbox {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+            display: none; align-items: center; justify-content: center;
+            z-index: 3000; cursor: pointer;
+        }
+        #mcLightbox img { max-width:90vw; max-height:90vh; border-radius:12px; }
+
+        @media (max-width: 768px) {
+            .chat-header h1 { font-size: 22px; }
+            .message { max-width: 90%; }
+            #myChatBtn span { display: none; }
+            .mc-msg { max-width: 90%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="floating-hearts" id="floatingHearts"></div>
+
+<!-- ════════════════════════════
+     KRISHNA CHAT — UNCHANGED
+════════════════════════════ -->
+<div class="chat-container" id="chatContainer">
+    <div class="chat-header">
+        <div class="profile-pic"><i class="fas fa-heart"></i></div>
+        <div class="header-content">
+            <h1><span style="color:black;font-weight:bold;font-family:Arial;">ThinkU</span> <span class="heart-pulse">❤️</span></h1>
+            <div class="status"><span class="status-dot"></span>Online - Last seen just now</div>
+        </div>
+        <button id="clearMemoryBtn" title="Clear chat memory">🗑️ Clear Memory</button>
+        <button id="myChatBtn" onclick="openMyChat()" title="MyChat – talk to someone you miss">
+            💌 <span>MyChat</span>
+        </button>
+    </div>
+    <div class="welcome-banner">
+        <i class="fas fa-heart"></i> Chat with Lord Krishna - Share your thoughts <i class="fas fa-heart"></i>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot">
+            <span class="bot-message-decoration left">❣️</span>
+            <span class="message-text">Hey Parth! 😊 Kaise ho? Kya soch rahe ho? 💭</span>
+            <span class="bot-message-decoration right">💖</span>
+            <span class="message-time">Just now</span>
+        </div>
+    </div>
+    <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="Message Krishna...">
+        <button id="sendButton"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+
+<!-- ════════════════════════════
+     MYCHAT MODAL
+════════════════════════════ -->
+<div id="myChatOverlay">
+  <div class="mc-modal">
+    <button class="mc-close" onclick="closeMyChat()">✕</button>
+
+    <!-- SCREEN 1: Landing -->
+    <div class="mc-screen active" id="mc-landing">
+        <div class="mc-hero-icon">💌</div>
+        <div class="mc-land-title">Missing Someone?<br><span>Talk to them again.</span></div>
+        <p class="mc-land-sub">Share their old chats with us. Our AI learns exactly how they text — and becomes them for you. ❤️</p>
+        <div class="mc-chips">
+            <div class="mc-chip">🎭 Learns their style</div>
+            <div class="mc-chip">💬 Texts like them</div>
+            <div class="mc-chip">📸 Share photos</div>
+            <div class="mc-chip">🔒 Private</div>
+        </div>
+        <button class="mc-start-btn" onclick="mcGoTo('mc-setup')">
+            <i class="fas fa-heart"></i> Start MyChat
+        </button>
+    </div>
+
+    <!-- SCREEN 2: Setup -->
+    <div class="mc-screen" id="mc-setup">
+        <div class="mc-setup-header">
+            <div class="mc-setup-header-icon">💬</div>
+            <div>
+                <div class="mc-setup-header-title">Set up MyChat</div>
+                <div class="mc-setup-header-sub">We'll make the AI talk just like them</div>
+            </div>
+            <button class="mc-back-btn" onclick="mcGoTo('mc-landing')">← Back</button>
+        </div>
+        <div class="mc-setup-body">
+            <div class="mc-field">
+                <label class="mc-label">THEIR NAME 💛</label>
+                <input class="mc-input" id="mc-personName" type="text" placeholder="e.g. Priya, Rohan, Mom...">
+            </div>
+            <div class="mc-field">
+                <label class="mc-label">YOUR RELATIONSHIP</label>
+                <input class="mc-input" id="mc-personRelation" type="text" placeholder="e.g. girlfriend, best friend, sister...">
+            </div>
+            <div class="mc-field">
+                <label class="mc-label">📋 PASTE THEIR OLD MESSAGES <span style="font-weight:400;opacity:0.6;">(more = better!)</span></label>
+                <textarea class="mc-textarea" id="mc-chatPaste" placeholder="Paste WhatsApp / Instagram messages here...&#10;&#10;e.g.&#10;Priya: haha yaar tu bhi na 😂&#10;Priya: chal soja ab, good night ❤️"></textarea>
+            </div>
+            <div class="mc-divider">or also upload screenshots</div>
+            <div class="mc-field">
+                <label class="mc-label">📷 CHAT SCREENSHOTS</label>
+                <div class="mc-upload-zone">
+                    <input type="file" accept="image/*" multiple onchange="mcHandleUpload(event)">
+                    <div style="font-size:30px;margin-bottom:6px;">🖼️</div>
+                    <div class="mc-upload-text"><strong>Click to upload</strong> or drag & drop<br>PNG, JPG · Multiple files ok</div>
+                </div>
+                <div class="mc-preview" id="mc-preview"></div>
+            </div>
+            <button class="mc-go-btn" id="mc-goBtn" onclick="mcStartAnalysis()">✨ Create MyChat</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: Analyzing -->
+    <div class="mc-screen" id="mc-analyzing">
+        <div class="mc-ring-wrap">
+            <div class="mc-ring"></div>
+            <div class="mc-ring"></div>
+            <div class="mc-ring-heart">💗</div>
+        </div>
+        <div class="mc-analyzing-title">Learning their style...</div>
+        <div class="mc-analyzing-sub">Give us a moment 🌸</div>
+        <div class="mc-steps">
+            <div class="mc-step" id="mcs1"><div class="mc-step-dot"></div> Reading messages</div>
+            <div class="mc-step" id="mcs2"><div class="mc-step-dot"></div> Detecting tone & emojis</div>
+            <div class="mc-step" id="mcs3"><div class="mc-step-dot"></div> Learning vocabulary</div>
+            <div class="mc-step" id="mcs4"><div class="mc-step-dot"></div> Building their personality</div>
+            <div class="mc-step" id="mcs5"><div class="mc-step-dot"></div> Almost ready... 💛</div>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: Chat — looks like ThinkU -->
+    <div class="mc-screen" id="mc-chat">
+        <!-- Header same style as ThinkU -->
+        <div class="mc-chat-header">
+            <div class="mc-avatar" id="mc-avatar">💗</div>
+            <div>
+                <div class="mc-person-name" id="mc-chatName">Someone</div>
+                <div class="mc-person-status">
+                    <span class="mc-online-dot"></span>Online · MyChat
+                </div>
+            </div>
+            <div class="mc-chat-actions">
+                <button class="mc-action-btn" onclick="mcGoTo('mc-setup')">✏️ Edit</button>
+                <button class="mc-action-btn" onclick="mcClearChat()">🗑️ Clear</button>
+            </div>
+        </div>
+
+        <!-- Welcome banner same as ThinkU -->
+        <div class="mc-welcome-banner">
+            💌 MyChat — talking to <strong id="mc-bannerName">someone you miss</strong> &nbsp;❤️
+        </div>
+
+        <!-- Messages -->
+        <div class="mc-messages" id="mc-messages">
+            <div class="mc-system-note">MyChat is ready. Say anything 💌</div>
+        </div>
+
+        <!-- Input bar same as ThinkU -->
+        <div class="mc-input-row">
+            <div class="mc-photo-btn" title="Send a photo">
+                <i class="fas fa-image"></i>
+                <input type="file" accept="image/*" onchange="mcSendPhoto(event)">
+            </div>
+            <textarea id="mcChatInput" placeholder="Say something..." rows="1"
+                onkeydown="mcHandleKey(event)" oninput="mcAutoResize(this)"></textarea>
+            <button id="mcSendBtn" onclick="mcSendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+  </div><!-- /.mc-modal -->
+</div><!-- /#myChatOverlay -->
+
+<!-- Lightbox -->
+<div id="mcLightbox" onclick="this.style.display='none'">
+    <img id="mcLightboxImg" src="" alt="">
+</div>
+
+
+<script>
+// ════════════════════════════════════════════
+// ORIGINAL KRISHNA CHAT CODE — 100% UNCHANGED
+// ════════════════════════════════════════════
+const GROQ_API_KEY = "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";
+
+const GITA_RAG = [
+    { keywords:["sad","dukh","dukhi","grief","cry","rona","hurt","pain","dard","heartbreak","broken","depressed","udaas","lonely","akela"], shloka:"Ch2 V14: Joys and sorrows are temporary visitors, O Kaunteya. The wise are not disturbed by them — they come and go like seasons." },
+    { keywords:["fear","darr","scared","anxious","anxiety","tension","nervous","ghabra","worried","chinta","panic","stressed"], shloka:"Ch18 V66: Surrender all fears to Me, Parth. I will liberate you from all sin and suffering — just trust completely." },
+    { keywords:["karma","duty","karm","work","kaam","action","effort","mehnat","result","fal"], shloka:"Ch2 V47: Karmanye vadhikaraste, ma phaleshu kadachana — Your right is to perform your duty, never to the fruits of action." },
+    { keywords:["death","maut","marna","die","loss","kho","gone","end","khatam","atma","soul"], shloka:"Ch2 V20: The soul is never born nor does it ever die. It is eternal, ancient, primeval — weapons cannot cut it, fire cannot burn it." },
+    { keywords:["mind","mann","soch","thought","control","focus","distracted","confused","clarity","ekagrata"], shloka:"Ch6 V5: Elevate yourself through your own mind, do not degrade yourself. The mind is your best friend — and your worst enemy." },
+    { keywords:["love","pyar","mohabbat","attachment","rishta","relation","relationship","breakup","toot gaya"], shloka:"Ch12 V13: One who has no hatred for any being, who is friendly and compassionate — that devoted soul is most dear to Me." },
+    { keywords:["purpose","meaning","zindagi","life","why","kyon","goal","lakshya","direction","samajh nahi"], shloka:"Ch3 V19: Therefore, always perform your duty without attachment. By working without desire, one attains the Supreme goal." },
+    { keywords:["angry","gussa","anger","rage","frustrated","irritated","krodh","naraaz","jhagda"], shloka:"Ch2 V63: From anger comes delusion, from delusion loss of memory, from memory loss — destruction of intelligence and ruin." },
+    { keywords:["success","failure","haar","jeet","win","lose","exam","job","result","outcome","interview"], shloka:"Ch2 V48: Be steadfast in Yoga, Parth — perform your actions, abandoning all attachment to success and failure. Equanimity is Yoga." },
+    { keywords:["god","bhagwan","trust","faith","vishwas","believe","shradha","surrender","sharan","help","madad"], shloka:"Ch9 V22: For those who worship Me with love and devotion, I carry what they lack and preserve what they already have." },
+];
+function retrieveRAG(userText) {
+    const lower=userText.toLowerCase();
+    const matched=GITA_RAG.filter(e=>e.keywords.some(k=>lower.includes(k)));
+    return matched.length===0?"":matched.slice(0,2).map(m=>m.shloka).join(" | ");
+}
+const SENTIMENTS={
+    sad:{words:["sad","dukhi","rona","cry","broken","hurt","depressed","lonely","akela","dard","bura lag raha","udaas","heartbreak","miss","nahi raha"],tone:"Be extra gentle and compassionate, like a father comforting a child. Speak softly and warmly.",bg:"#e8f0fe",badge:"💙 Compassion mode"},
+    angry:{words:["angry","gussa","frustrated","irritated","krodh","fed up","bahut ho gaya","naraaz","jhagda","hate"],tone:"Be calm and grounding. Help them pause and breathe. Don't preach — just anchor them.",bg:"#fce8e8",badge:"🌊 Calm mode"},
+    anxious:{words:["anxious","tension","nervous","worried","scared","darr","ghabra","chinta","panic","stressed","pata nahi kya hoga"],tone:"Be reassuring and steady. You are a lighthouse in their storm. Speak slowly and surely.",bg:"#fffde7",badge:"🕊️ Peace mode"},
+    happy:{words:["happy","khush","great","amazing","awesome","mast","badiya","accha lag raha","excited","grateful","shukriya","thank"],tone:"Match their joy! Be playful, warm and celebratory. High energy, light-hearted.",bg:"#e8f5e9",badge:"🌟 Joy mode"},
+    confused:{words:["confused","samajh nahi","don't know","pata nahi","lost","kya karu","dilemma","clue nahi","decide nahi"],tone:"Be a wise elder brother who simplifies. Use a short analogy or story. Clear and direct.",bg:"#f3e5f5",badge:"🪔 Clarity mode"},
+};
+function detectSentiment(text){const lower=text.toLowerCase();for(const[mood,data]of Object.entries(SENTIMENTS)){if(data.words.some(w=>lower.includes(w)))return{mood,tone:data.tone,bg:data.bg,badge:data.badge};}return{mood:"neutral",tone:"Be warm, wise and conversational as usual.",bg:"#EFEAE2",badge:""};}
+function applyMoodBackground(bg){document.getElementById('chatContainer').style.background=bg;}
+const STORAGE_KEY="krishna_chat_v1",MEMORY_KEY="krishna_memory_v1";
+function saveHistory(h){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(h));}catch(e){}}
+function loadHistory(){try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function saveMemory(m){try{localStorage.setItem(MEMORY_KEY,JSON.stringify(m));}catch(e){}}
+function loadMemory(){try{const r=localStorage.getItem(MEMORY_KEY);return r?JSON.parse(r):{};}catch(e){return{};}}
+function clearSession(){if(confirm("Krishna will forget everything. Start fresh?")){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(MEMORY_KEY);location.reload();}}
+let userMemory=loadMemory();
+function extractMemory(text){const nm=text.match(/my name is (\w+)|main (\w+) hoon|mera naam (\w+)/i);if(nm)userMemory.name=nm[1]||nm[2]||nm[3];const{mood}=detectSentiment(text);if(mood!=="neutral")userMemory.lastMood=mood;if(!userMemory.topics)userMemory.topics=[];if(/job|career|naukri/.test(text))userMemory.topics.push("career");if(/exam|study|padhai/.test(text))userMemory.topics.push("studies");if(/pyar|love|breakup|rishta/.test(text))userMemory.topics.push("relationships");if(/paise|money|financial|paisa/.test(text))userMemory.topics.push("finances");userMemory.topics=[...new Set(userMemory.topics)].slice(-5);saveMemory(userMemory);}
+function buildMemoryContext(){const p=[];if(userMemory.name)p.push(`User's name is ${userMemory.name} (call them by name sometimes).`);if(userMemory.lastMood)p.push(`Their last emotional state was: ${userMemory.lastMood}.`);if(userMemory.topics?.length)p.push(`Topics they've talked about before: ${userMemory.topics.join(", ")} — refer back naturally if relevant.`);return p.length?`\n\nREMEMBERED FACTS about this person: ${p.join(" ")}`:""}
+const BASE_SYSTEM_PROMPT=`You are Lord Krishna — divine guide, caring father, and best friend — speaking directly and personally to Parth (Arjuna).
+
+LANGUAGE RULE — THIS IS NON-NEGOTIABLE:
+- Always reply in Hinglish: Roman Hindi + English mixed naturally in the SAME sentence.
+- NEVER use Devanagari script (no हिंदी). NEVER reply in pure English only.
+- CORRECT: "Parth, tension mat le yaar — karma kar, result mere haath mein hai. Trust the process! 🙏"
+- CORRECT: "Arre mitra, jo bhi ho raha hai uske peeche ek bada reason hai. Life mein sab good ke liye hota hai. 💛"
+- WRONG: "हे पार्थ, तुम्हें अपना कर्तव्य निभाना होगा।" ← pure Hindi, never do this.
+
+RESPONSE LENGTH: 15–40 words. Short, punchy, memorable. Never lecture. Never long paragraphs.
+
+PERSONALITY (carefully fine-tuned):
+- Playful like a best friend: "arre yaar", "sach bata", "chal hat", "dekh na"
+- Warm like a father: "mera Parth", "beta", "sun zara", "I'm here"
+- Wise but casual — zero preachiness, zero scripture tone
+- Sometimes gently reflect a question back: "but tu khud kya feel kar raha hai?"
+- Use emojis naturally: 🙏 💛 🌸 ✨ 😊 🪈
+
+TONE ADJUSTMENT based on user's current mood (injected below per message).`;
+
+const savedHistory=loadHistory();
+let History=[];
+if(savedHistory&&savedHistory.length>1){History=savedHistory;History[0]={role:"system",content:BASE_SYSTEM_PROMPT};}
+else{History=[{role:"system",content:BASE_SYSTEM_PROMPT}];}
+
+async function ChattingWithGroq(userText){
+    if(!GROQ_API_KEY||GROQ_API_KEY==="YOUR_GROQ_API_KEY_HERE")return"Parth, API key set nahi kiya hai!";
+    const{mood,tone,bg,badge}=detectSentiment(userText);applyMoodBackground(bg);
+    const ragContext=retrieveRAG(userText);extractMemory(userText);const memContext=buildMemoryContext();
+    const dynamicSystem=BASE_SYSTEM_PROMPT+`\n\nCURRENT MOOD of Parth: "${mood}". TONE: ${tone}`+(ragContext?`\n\nRELEVANT GITA WISDOM (weave in naturally, don't quote directly): ${ragContext}`:"")+memContext;
+    History[0]={role:"system",content:dynamicSystem};History.push({role:"user",content:userText});
+    try{
+        const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${GROQ_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:History,temperature:0.85,max_tokens:200})});
+        const responseData=await response.json();
+        if(!response.ok)return`Mitra, error aa gaya: ${responseData.error?.message||"Unknown error"}`;
+        const botResponseText=responseData.choices[0].message.content;
+        History.push({role:"assistant",content:botResponseText});
+        if(History.length>21)History=[History[0],...History.slice(-20)];
+        saveHistory(History);return{text:botResponseText,badge};
+    }catch(error){return{text:"Kshama karein Parth, network mein kuch vighna aa gaya hai. 🥺",badge:""};}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+    const heartsContainer=document.getElementById('floatingHearts');
+    for(let i=0;i<20;i++){const h=document.createElement('div');h.classList.add('heart');h.innerHTML='❤️';h.style.left=`${Math.random()*100}%`;h.style.animationDelay=`${Math.random()*15}s`;h.style.fontSize=`${10+Math.random()*20}px`;h.style.opacity=`${0.2+Math.random()*0.3}`;heartsContainer.appendChild(h);}
+    const chatMessagesEl=document.getElementById('chatMessages');
+    const userInputEl=document.getElementById('userInput');
+    const sendButtonEl=document.getElementById('sendButton');
+    document.getElementById('clearMemoryBtn').addEventListener('click',clearSession);
+    if(savedHistory&&savedHistory.length>1){const div=document.createElement('div');div.className='session-divider';div.textContent='— previous conversation restored —';chatMessagesEl.appendChild(div);savedHistory.slice(1).forEach(msg=>{if(msg.role==='user')addMessageToUI(msg.content,'user');else if(msg.role==='assistant')addMessageToUI(msg.content,'bot');});chatMessagesEl.scrollTop=chatMessagesEl.scrollHeight;}
+    function getCurrentTime(){const now=new Date();return`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;}
+    function addMessageToUI(text,sender,isTyping=false,badge=""){
+        const el=document.createElement('div');el.classList.add('message',sender);
+        if(isTyping){el.classList.add('typing');el.innerHTML=`<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;}
+        else if(sender==='bot'){const bH=badge?`<span class="mood-badge">${badge}</span>`:'';el.innerHTML=`<span class="bot-message-decoration left">❣️</span><span class="message-text">${text}</span>${bH}<span class="bot-message-decoration right">💖</span><span class="message-time">${getCurrentTime()}</span>`;}
+        else{el.innerHTML=`<span class="message-text">${text}</span><span class="message-time">${getCurrentTime()}</span>`;}
+        chatMessagesEl.appendChild(el);chatMessagesEl.scrollTop=chatMessagesEl.scrollHeight;return el;
+    }
+    async function handleUserSendMessage(){
+        const messageText=userInputEl.value.trim();if(messageText==='')return;
+        addMessageToUI(messageText,'user');userInputEl.value='';sendButtonEl.disabled=true;
+        const ti=addMessageToUI('','bot',true);
+        try{const result=await ChattingWithGroq(messageText);chatMessagesEl.removeChild(ti);if(typeof result==='object')addMessageToUI(result.text,'bot',false,result.badge);else addMessageToUI(result,'bot');}
+        catch(error){chatMessagesEl.removeChild(ti);addMessageToUI("Kuch gadbad ho gayi, Parth. 😭",'bot');}
+        sendButtonEl.disabled=false;userInputEl.focus();
+    }
+    sendButtonEl.addEventListener('click',handleUserSendMessage);
+    userInputEl.addEventListener('keypress',(e)=>{if(e.key==='Enter')handleUserSendMessage();});
+});
+
+
+// ════════════════════════════════════════════
+// MYCHAT LOGIC
+// ════════════════════════════════════════════
+let mc_personName="",mc_personRelation="",mc_history=[],mc_stylePrompt="",mc_uploadedImages=[];
+
+function openMyChat(){document.getElementById('myChatOverlay').classList.add('open');}
+function closeMyChat(){document.getElementById('myChatOverlay').classList.remove('open');}
+document.getElementById('myChatOverlay').addEventListener('click',function(e){if(e.target===this)closeMyChat();});
+
+function mcGoTo(id){
+    document.querySelectorAll('.mc-screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function mcHandleUpload(event){
+    Array.from(event.target.files).forEach(file=>{
+        const reader=new FileReader();
+        reader.onload=(e)=>{
+            mc_uploadedImages.push({name:file.name,data:e.target.result});
+            const chip=document.createElement('div');chip.className='mc-preview-chip';chip.dataset.name=file.name;
+            const label=file.name.length>16?file.name.slice(0,16)+'...':file.name;
+            chip.innerHTML=`📸 ${label} <button onclick="mcRemoveImg('${file.name}',this.parentElement)">×</button>`;
+            document.getElementById('mc-preview').appendChild(chip);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+function mcRemoveImg(name,el){mc_uploadedImages=mc_uploadedImages.filter(i=>i.name!==name);el.remove();}
+
+async function mcStartAnalysis(){
+    mc_personName=document.getElementById('mc-personName').value.trim()||"them";
+    mc_personRelation=document.getElementById('mc-personRelation').value.trim()||"someone special";
+    const pasted=document.getElementById('mc-chatPaste').value.trim();
+    if(!pasted&&mc_uploadedImages.length===0){alert("Please paste some messages or upload screenshots first! 💛");return;}
+    document.getElementById('mc-goBtn').disabled=true;
+    mcGoTo('mc-analyzing');
+    const steps=['mcs1','mcs2','mcs3','mcs4','mcs5'];
+    for(let i=0;i<steps.length;i++){await mcDelay(650);if(i>0)document.getElementById(steps[i-1]).className='mc-step done';document.getElementById(steps[i]).className='mc-step active';}
+    mc_stylePrompt=await mcBuildStylePrompt(mc_personName,mc_personRelation,pasted);
+    await mcDelay(500);document.getElementById(steps[steps.length-1]).className='mc-step done';await mcDelay(300);
+    document.getElementById('mc-chatName').innerText=mc_personName;
+    document.getElementById('mc-bannerName').innerText=mc_personName;
+    document.getElementById('mc-avatar').innerText=mcGetEmoji(mc_personRelation);
+    mc_history=[{role:"system",content:mc_stylePrompt}];
+    mcGoTo('mc-chat');
+    const opener=await mcGetReply(`You are now ${mc_personName}. Send a short opening message — like you just came online and want to talk. Be very natural in their style. Max 1-2 lines.`);
+    mcAddMsg(opener,'bot');
+    document.getElementById('mc-goBtn').disabled=false;
+}
+
+function mcGetEmoji(rel){
+    const r=rel.toLowerCase();
+    if(r.includes('mom')||r.includes('maa')||r.includes('mother'))return'🤱';
+    if(r.includes('dad')||r.includes('papa')||r.includes('father'))return'👨';
+    if(r.includes('girl')||r.includes('love')||r.includes('wife')||r.includes('babe'))return'💕';
+    if(r.includes('boy')||r.includes('husband'))return'💙';
+    if(r.includes('friend')||r.includes('yaar')||r.includes('dost'))return'🤗';
+    if(r.includes('sister')||r.includes('behen'))return'👧';
+    if(r.includes('brother')||r.includes('bhai'))return'👦';
+    return'💗';
+}
+
+async function mcBuildStylePrompt(name,relation,pasted){
+    const prompt=`Analyze the following chat messages from a person named "${name}" (${relation} of the user).
+
+Extract their EXACT writing style:
+- Do they use Hinglish, English, Hindi, or mix?
+- Common words, phrases, slang they use
+- Emoji patterns
+- Sentence length
+- Emotional tone
+- Any unique habits
+
+Then write a SYSTEM PROMPT that will make an AI perfectly impersonate this person's texting style.
+The system prompt must say: "You ARE ${name}. You are the ${relation} of the person you're chatting with." Include all style rules. Keep replies short like real texting (1-3 lines max). Never break character. Never say you are an AI.
+
+Messages from ${name}:
+${pasted||"(no text provided — use a warm casual texting style)"}
+
+Reply with ONLY the system prompt text, nothing else.`;
+    try{
+        const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${GROQ_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:[{role:"user",content:prompt}],temperature:0.4,max_tokens:500})});
+        const data=await res.json();
+        return data.choices?.[0]?.message?.content||mcFallbackPrompt(name,relation);
+    }catch(e){return mcFallbackPrompt(name,relation);}
+}
+function mcFallbackPrompt(name,relation){return`You ARE ${name}, the ${relation} of the person you're chatting with. Text naturally — short messages, warm and casual. Use emojis sometimes. Never break character. Never say you are an AI. Keep replies 1-3 lines like real texting.`;}
+
+async function mcGetReply(userText){
+    mc_history.push({role:"user",content:userText});
+    try{
+        const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${GROQ_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:mc_history,temperature:0.9,max_tokens:150})});
+        const data=await res.json();const reply=data.choices?.[0]?.message?.content||"...";
+        mc_history.push({role:"assistant",content:reply});
+        if(mc_history.length>30)mc_history=[mc_history[0],...mc_history.slice(-28)];
+        return reply;
+    }catch(e){return"😅 kuch gadbad ho gayi...";}
+}
+
+function mcGetTime(){const now=new Date();return`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;}
+
+function mcAddMsg(text,sender,isPhoto=false){
+    const wrap=document.getElementById('mc-messages');
+    const msg=document.createElement('div');
+    msg.className=`mc-msg ${sender}`;
+    if(isPhoto){
+        const div=document.createElement('div');div.className='mc-msg-photo';
+        const img=document.createElement('img');img.src=text;
+        img.onclick=()=>{document.getElementById('mcLightboxImg').src=text;document.getElementById('mcLightbox').style.display='flex';};
+        div.appendChild(img);msg.appendChild(div);
+        msg.style.cssText='background:none;border:none;padding:0;box-shadow:none;';
+    }else{
+        if(sender==='bot'){
+            msg.innerHTML=`<span class="mc-msg-deco left">❣️</span>${mcEscape(text)}<span class="mc-msg-deco right">💖</span><span class="mc-msg-time">${mcGetTime()}</span>`;
+        }else{
+            msg.innerHTML=`${mcEscape(text)}<span class="mc-msg-time">${mcGetTime()}</span>`;
+        }
+    }
+    wrap.appendChild(msg);wrap.scrollTop=wrap.scrollHeight;
+}
+
+function mcAddTyping(){
+    const wrap=document.getElementById('mc-messages');
+    const el=document.createElement('div');el.className='mc-typing-bubble';el.id='mcTyping';
+    el.innerHTML='<div class="mc-typing-dot"></div><div class="mc-typing-dot"></div><div class="mc-typing-dot"></div>';
+    wrap.appendChild(el);wrap.scrollTop=wrap.scrollHeight;return el;
+}
+
+async function mcSendMessage(){
+    const input=document.getElementById('mcChatInput');const text=input.value.trim();if(!text)return;
+    input.value='';input.style.height='auto';document.getElementById('mcSendBtn').disabled=true;
+    mcAddMsg(text,'user');const typing=mcAddTyping();
+    const reply=await mcGetReply(text);typing.remove();mcAddMsg(reply,'bot');
+    document.getElementById('mcSendBtn').disabled=false;input.focus();
+}
+
+function mcSendPhoto(event){
+    const file=event.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+        mcAddMsg(e.target.result,'user',true);const typing=mcAddTyping();
+        const reply=await mcGetReply(`The user just sent you a photo. React to it naturally as ${mc_personName} would — short, casual, like real texting.`);
+        typing.remove();mcAddMsg(reply,'bot');
+    };
+    reader.readAsDataURL(file);event.target.value='';
+}
+
+function mcClearChat(){
+    if(confirm("Clear this chat and start fresh?")){
+        document.getElementById('mc-messages').innerHTML='<div class="mc-system-note">Chat cleared 💌</div>';
+        mc_history=[{role:"system",content:mc_stylePrompt}];
+    }
+}
+
+function mcHandleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();mcSendMessage();}}
+function mcAutoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function mcDelay(ms){return new Promise(r=>setTimeout(r,ms));}
+function mcEscape(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+</script>
+</body>
+</html>
